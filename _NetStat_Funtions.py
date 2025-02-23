@@ -373,11 +373,12 @@ def read_json_file(file_path):
     else:
         return {}
 
-#JSON LOCAL DATA NETSTAT SCAN
+import socket
+# JSON LOCAL DATA NETSTAT SCAN
 def gather_network_data():
     # Diccionario para almacenar los datos
     network_data = {}
-    filename = _Variables.rute_network_data
+    filename = _Variables.rute_network_data  # Ruta del archivo JSON
     
     # Mapeo de estados a abreviaturas
     status_mapping = {
@@ -395,26 +396,49 @@ def gather_network_data():
         "UNKNOWN": "UNK"
     }
 
+    # Procesos comunes que generan muchas conexiones
+    procesos_comunes = ["chrome.exe", "firefox.exe", "edge.exe", "opera.exe", "teams.exe", "discord.exe"]
+
+    # Procesos críticos del sistema que no deberían comunicarse externamente
+    procesos_sensibles = ["lsass.exe", "explorer.exe", "winlogon.exe", "csrss.exe", "services.exe"]
+
+    # Contador de conexiones por IP
+    ip_counts = {}
+
+    def is_private_ip(ip):
+        """ Verifica si una IP es privada (LAN). """
+        try:
+            return ip.startswith(("192.168.", "10.", "172.16.", "127."))
+        except:
+            return False
+
     # Obtener todas las conexiones de red
     for conn in psutil.net_connections(kind='inet'):
         # Filtrar solo IPv4
-        if ":" in conn.laddr.ip:  # Esto excluye las direcciones IPv6
+        if ":" in conn.laddr.ip:  # Excluye direcciones IPv6
             continue
         
         # Excluir direcciones que no sean "0.0.0.0" o "192.168.x.x"
         if conn.laddr.ip not in ["0.0.0.0"] and not conn.laddr.ip.startswith("192.168."):
             continue
         
-        # Obtener la información de la conexión
-        process_name = psutil.Process(conn.pid).name() if conn.pid else 'Unknown Process'
+        # Filtrar solo ciertos estados relevantes
+        if conn.status not in ["ESTABLISHED", "LISTEN"]:
+            continue
+
+        # Obtener el nombre del proceso de manera segura
+        process_name = "Unknown Process"
+        if conn.pid and conn.pid > 0:
+            try:
+                process_name = psutil.Process(conn.pid).name().lower()
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                process_name = "Unknown Process"
+        
         local_address = f"{conn.laddr.ip}:{conn.laddr.port}"
-        remote_address = f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else 'N/A'
+        remote_address = f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else "N/A"
         
         # Usar abreviatura para el estado
         short_status = status_mapping.get(conn.status, conn.status)
-        
-        if short_status == "NONE": 
-            continue
         
         # Crear el diccionario para la conexión
         connection_info = {
@@ -424,12 +448,31 @@ def gather_network_data():
             "Wan": remote_address,
             "Status": short_status
         }
-        
+
+        # 🚨 Alertas de seguridad 🚨
+        # Si la conexión es a una IP pública
+        if conn.raddr and not is_private_ip(conn.raddr.ip):
+            connection_info["Alert"] = "🔴 Conexión a IP Pública"
+
+        # Si un proceso del sistema tiene una conexión externa
+        if process_name in procesos_sensibles and conn.raddr:
+            connection_info["Alert"] = "⚠️ Proceso del sistema con conexión externa"
+
+        # Contar conexiones a la misma IP
+        if conn.raddr:
+            ip_counts[conn.raddr.ip] = ip_counts.get(conn.raddr.ip, 0) + 1
+            if ip_counts[conn.raddr.ip] > 10:
+                connection_info["Alert"] = "⚠️ Muchas conexiones a la misma IP"
+
         # Agregar la información al diccionario principal
         if process_name not in network_data:
             network_data[process_name] = []
-        network_data[process_name].append(connection_info)
+
+        # Si el proceso es común, limitar a 5 conexiones, si no, registrar todas
+        if process_name not in procesos_comunes or len(network_data[process_name]) < 5:
+            network_data[process_name].append(connection_info)
 
     # Guardar datos en el archivo JSON
     with open(filename, 'w') as file:
         json.dump(network_data, file, indent=4)
+
