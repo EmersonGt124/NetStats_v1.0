@@ -18,3 +18,4 @@ typing_extensions==4.12.2
 urllib3==2.3.0
 xyzservices==2025.1.0
 ping3==4.0.4
+cx_Freeze==7.2.10

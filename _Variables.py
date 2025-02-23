@@ -283,3 +283,8 @@ languages = {
         "end": "Tareas completadas correctamente para ver los resultados presiona el botón"
     }
 }
+
+# Definir manualmente el flag SEE_MASK_INVOKEIDLIST
+SEE_MASK_INVOKEIDLIST = 0x0000000C
+
+

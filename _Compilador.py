@@ -1,50 +1,26 @@
-import sys
-from cx_Freeze import setup, Executable
-import _Variables
+import PyInstaller.__main__
+import os
+import shutil
 
-build_exe_options = {
-    "packages": ["tkinter"],
-    "includes": [
-        "json",
-        "os",
-        "sys",
-        "subprocess",
-        "time",
-        "tkinter",
-        "psutil",
-        "importlib",
-        "win32serviceutil",
-        "threading",
-        "PIL",  # PIL es un módulo, aunque las clases 'Image' y 'ImageTk' son parte de este módulo.
-        "folium",
-        "webview",
-        "re",
-        "random",
-        "ping3",
-        "requests",
-        "csv",
-        "ipaddress",
-        "shutil",
-        "tempfile",
-        "webbrowser",
-        "ctypes"
-    ],
-    "include_files": [
-        ("lib/resources", "lib/resources")
-    ]
-}
+# Definir el nombre del ejecutable y la carpeta de salida
+exe_name = "NetStatus_v1.0"
+output_dir = "dist"
 
-executables = [
-    Executable("_NetStat.py", base=None, target_name="NetStatus_v1.0.exe", icon=_Variables.icono_exe)
-]
+# Ejecutar PyInstaller con las opciones necesarias
+PyInstaller.__main__.run([
+    "--onefile",  # Genera un solo ejecutable
+    "--windowed",  # Oculta la consola (para aplicaciones GUI)
+    f"--name={exe_name}",  # Nombre del ejecutable
+    "--icon=lib/resources/icons/icono.ico",  # Ruta al ícono
+    f"--add-data=lib/resources{os.pathsep}lib/resources",  # Copiar la carpeta de recursos
+    "_NetStat.py"  # Archivo principal
+])
 
-setup(
-    name="NetStat",
-    version="1.0",
-    description="Descubre nuestra maravillosa aplicación para gestionar redes, ofreciendo control de puertos, gestión de procesos y rastreo de IP. La herramienta multifuncional ideal para mantener tus sistemas seguros y optimizados.",
-    author="Emerson Granda",
-    author_email="Emerson199818@outlook.com",
-    url="https://github.com/emerson199818",
-    options={"build_exe": build_exe_options},
-    executables=executables
-)
+# ** Copiar manualmente la carpeta lib/resources a dist/ **
+dest_folder = os.path.join(output_dir, "lib/resources")
+
+if os.path.exists(dest_folder):
+    shutil.rmtree(dest_folder)  # Elimina la carpeta si ya existe
+
+shutil.copytree("lib/resources", dest_folder)  # Copia la carpeta completa
+print(f"Se copió 'lib/resources' en '{dest_folder}'")

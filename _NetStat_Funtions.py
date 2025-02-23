@@ -9,6 +9,11 @@ import win32serviceutil
 import time
 import threading
 import subprocess
+import socket
+import tkinter.messagebox as messagebox
+import win32con
+import win32com.shell.shell as shell
+import webbrowser
 
 import _Variables
 import _Buttons_Funtions
@@ -166,9 +171,9 @@ def crear_treeview(parent, theme):
     context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Details'], command=execute_details)
     context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Track_IP'], command=execute_Trackip)
     context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Kill_Task'], command=_Kill)
-    context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Properties'])
-    context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Search_Online'])
-    context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Show_in_Folder'])
+    context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Properties'], command=open_properties)
+    context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Search_Online'], command=search_online)
+    context_menu.add_command(label=_Variables.languages[_Variables.current_language]['Show_in_Folder'], command=show_in_folder)
 
     # add treeview to the container
     tree.pack(expand=True, fill=tk.BOTH)
@@ -330,6 +335,95 @@ def _Kill():
     except subprocess.CalledProcessError or Exception as e:
         update_ui(_Variables.languages[_Variables.current_language]["error"])
 
+def get_exe_path_from_pid(pid):
+    """Obtiene la ruta completa del ejecutable a partir del PID."""
+    try:
+        process = psutil.Process(int(pid))
+        return process.exe()
+    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
+        messagebox.showerror("Error", f"Error al obtener la ruta del ejecutable: {e}")
+        return None
+
+def open_properties():
+    """Abre la ventana de propiedades del ejecutable, si se encuentra y es un .exe válido."""
+    selected = tree.selection()
+    if not selected:
+        return
+
+    # Obtener los valores de la fila seleccionada
+    item_values = tree.item(selected[0], "values")
+    if not item_values:
+        return
+
+    pid = item_values[1]  # Asegúrate de que el PID esté en la columna correcta
+    exe_path = get_exe_path_from_pid(pid)
+
+    if exe_path and exe_path.lower().endswith(".exe"):
+        try:
+            shell.ShellExecuteEx(
+                lpVerb="properties",
+                lpFile=exe_path,
+                nShow=win32con.SW_SHOW,
+                fMask=_Variables.SEE_MASK_INVOKEIDLIST
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron abrir las propiedades: {e}")
+    else:
+        messagebox.showinfo("Información", "No se encontró un ejecutable válido para este servicio.")
+
+def search_online():
+    # Obtener la fila seleccionada en el Treeview
+    selected = tree.selection()
+    if not selected:
+        return
+
+    # Extraer los valores de la fila seleccionada
+    item_values = tree.item(selected[0], "values")
+    if not item_values:
+        return
+
+    # Suponiendo que el nombre del servicio se encuentra en la columna 5 (índice 4)
+    service_name = item_values[4]
+
+    # Eliminar la extensión ".exe" si está presente
+    if service_name.lower().endswith(".exe"):
+        search_term = service_name[:-4]
+    else:
+        search_term = service_name
+
+    # Construir la URL de búsqueda en Google
+    query = search_term.replace(" ", "+")
+    url = f"https://www.google.com/search?q={query}"
+
+    try:
+        webbrowser.open(url)
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo abrir el navegador: {e}")
+
+def show_in_folder():
+    """Abre el Explorador de Windows en la carpeta del ejecutable y lo selecciona."""
+    selected = tree.selection()
+    if not selected:
+        return
+
+    # Obtener los valores de la fila seleccionada del Treeview
+    item_values = tree.item(selected[0], "values")
+    if not item_values:
+        return
+
+    # Suponemos que el PID está en la segunda columna (índice 1)
+    pid = item_values[1]
+    exe_path = get_exe_path_from_pid(pid)
+
+    if exe_path and os.path.exists(exe_path):
+        try:
+            # Abre el Explorador de Windows y selecciona el archivo
+            subprocess.run(["explorer", "/select,", exe_path])
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir la carpeta: {e}")
+    else:
+        messagebox.showinfo("Información", "No se encontró un ejecutable válido para este servicio.")
+
 def update_ui(message):
     # Esta función actualiza la interfaz de usuario. Asegúrate de que sea segura para el hilo.
     # Usualmente, usarás un método de hilo seguro como `after` en Tkinter.
@@ -373,7 +467,6 @@ def read_json_file(file_path):
     else:
         return {}
 
-import socket
 # JSON LOCAL DATA NETSTAT SCAN
 def gather_network_data():
     # Diccionario para almacenar los datos
