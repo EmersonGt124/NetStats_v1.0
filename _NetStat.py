@@ -288,14 +288,11 @@ class AppController:
                 reiniciar_aplicacion()
             else:
                 return
-
+ 
 def reiniciar_aplicacion():
-    # Guarda el intérprete de Python actual
-    python = sys.executable
-    # Usa subprocess para lanzar una nueva instancia de esta aplicación
-    subprocess.Popen([python] + sys.argv)
-    # Cierra la instancia actual
-    sys.exit()
+    """Reinicia la aplicación correctamente sin necesidad de un nuevo proceso."""
+    python = sys.executable  # Ruta del ejecutable actual
+    os.execl(python, python, *sys.argv)  # Reemplaza el proceso actual por uno nuevo
 
 def help_b():
     _Alerts.alerta_ok(_Variables.titulo, "Contacto", "Para informacion o reportar bug contacte por Email a notificaciones.netaplication@gmail.com")
