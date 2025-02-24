@@ -245,7 +245,6 @@ def obtener_tracert(dominio, archivo_salida): #working
 
             # Parámetros para la solicitud a la API
             payload = {
-                'key':'key',  # Reemplaza con tu clave API válida
                 'ip': ip,
                 'format': 'json'
             }

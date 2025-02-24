@@ -23,4 +23,4 @@ if os.path.exists(dest_folder):
     shutil.rmtree(dest_folder)  # Elimina la carpeta si ya existe
 
 shutil.copytree("lib/resources", dest_folder)  # Copia la carpeta completa
-print(f"Se copió 'lib/resources' en '{dest_folder}'")
+print("Ready...")
