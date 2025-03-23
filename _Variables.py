@@ -71,6 +71,7 @@ poppins_entry = font.Font(root=window_root, family=tk_font.actual()['family'], s
 
 #DATA#
 #local data options
+rute = "lib/resources/data/" 
 rute_data = "lib/resources/data/data.json" 
 theme = ''
 inicial_theme = "light"
@@ -90,6 +91,7 @@ db_asn = 'lib/Resources/db/1_Ans.csv'
 db_proxy =  'lib/resources/db/2_Proxy.csv'
 
 #index_location = "lib/resources/location/home.html"
+location = "lib/resources/locat"
 map_location = "lib/resources/locat/map.html"
 global_ruta = ""
 ip_insert_entry = ""

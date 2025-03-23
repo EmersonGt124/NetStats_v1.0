@@ -294,6 +294,10 @@ def reiniciar_aplicacion():
     python = sys.executable  # Ruta del ejecutable actual
     os.execl(python, python, *sys.argv)  # Reemplaza el proceso actual por uno nuevo
 
+def ensure_folder_exists(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
 def help_b():
     _Alerts.alerta_ok(_Variables.titulo, "Contacto", "Para informacion o reportar bug contacte por Email a notificaciones.netaplication@gmail.com")
 
@@ -388,4 +392,7 @@ def main():
     _Variables.window_root.mainloop()
 
 if __name__ == "__main__":
+    # Crear rutas si no existen
+    ensure_folder_exists(_Variables.rute)
+    ensure_folder_exists(_Variables.location)
     main()
